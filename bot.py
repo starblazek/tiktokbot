@@ -13,6 +13,20 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
+def save_cookies():
+    """Создаём cookies.txt из Railway variable"""
+    cookies = os.getenv("TIKTOK_COOKIES")
+
+    if not cookies:
+        return None
+
+    path = "cookies.txt"
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(cookies)
+
+    return path
+
+
 @dp.message(CommandStart())
 async def start(message: Message):
     await message.answer("Пришли ссылку на TikTok 👇")
@@ -30,17 +44,22 @@ async def download(message: Message):
 
     filename = f"{uuid.uuid4()}.mp4"
 
+    cookies_path = save_cookies()
+
     ydl_opts = {
         "outtmpl": filename,
 
-        # 🔥 САМОЕ ВАЖНОЕ
-        "format": "best[ext=mp4]/best",
+        # 🔥 максимально стабильный формат
+        "format": "bv*+ba/best/best[ext=mp4]",
 
         "merge_output_format": "mp4",
-
         "noplaylist": True,
         "quiet": True,
 
+        # 🔥 cookies (если есть)
+        "cookiefile": cookies_path if cookies_path else None,
+
+        # 🔥 имитация браузера
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -73,6 +92,9 @@ async def download(message: Message):
     finally:
         if os.path.exists(filename):
             os.remove(filename)
+
+        if cookies_path and os.path.exists(cookies_path):
+            os.remove(cookies_path)
 
         await status.delete()
 
