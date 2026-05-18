@@ -28,27 +28,35 @@ async def download(message: Message):
 
     status = await message.answer("⏬ Скачиваю видео...")
 
-    file_id = str(uuid.uuid4())
-    filename = f"{file_id}.mp4"
+    filename = f"{uuid.uuid4()}.mp4"
 
-    # ВАЖНО: правильная сборка видео + аудио
+    # 🔥 СТАБИЛЬНЫЙ yt-dlp (звук + обход TikTok блокировок)
     ydl_opts = {
         "outtmpl": filename,
-        "format": "bestvideo+bestaudio/best",
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
         "merge_output_format": "mp4",
         "noplaylist": True,
-        "quiet": True
+        "quiet": True,
+
+        # 🔥 важно для TikTok (имитация браузера)
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0 Safari/537.36"
+            ),
+            "Referer": "https://www.tiktok.com/"
+        }
     }
 
     try:
         loop = asyncio.get_event_loop()
 
-        # yt-dlp блокирующий → уводим в thread
-        def download_video():
+        def run_download():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
 
-        await loop.run_in_executor(None, download_video)
+        await loop.run_in_executor(None, run_download)
 
         if not os.path.exists(filename):
             await message.answer("Не удалось скачать видео 😢")
