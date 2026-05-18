@@ -30,15 +30,17 @@ async def download(message: Message):
 
     filename = f"{uuid.uuid4()}.mp4"
 
-    # 🔥 СТАБИЛЬНЫЙ yt-dlp (звук + обход TikTok блокировок)
     ydl_opts = {
         "outtmpl": filename,
-        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
+
+        # 🔥 САМОЕ ВАЖНОЕ
+        "format": "best[ext=mp4]/best",
+
         "merge_output_format": "mp4",
+
         "noplaylist": True,
         "quiet": True,
 
-        # 🔥 важно для TikTok (имитация браузера)
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
