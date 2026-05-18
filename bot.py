@@ -6,6 +6,7 @@ import yt_dlp
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from aiogram.filters import CommandStart
+from aiogram.types import FSInputFile
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -42,7 +43,8 @@ async def download(message: Message):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        await message.answer_video(video=open(filename, "rb"))
+        video = FSInputFile(filename)
+        await message.answer_video(video=video)
 
     except Exception as e:
         await message.answer(f"Ошибка:\n{e}")
