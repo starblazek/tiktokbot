@@ -14,15 +14,14 @@ dp = Dispatcher()
 
 
 def save_cookies():
-    """Создаём cookies.txt из Railway variable"""
-    cookies = os.getenv("TIKTOK_COOKIES")
+    cookies_text = os.getenv("TIKTOK_COOKIES")
 
-    if not cookies:
+    if not cookies_text:
         return None
 
     path = "cookies.txt"
     with open(path, "w", encoding="utf-8") as f:
-        f.write(cookies)
+        f.write(cookies_text)
 
     return path
 
@@ -48,17 +47,38 @@ async def download(message: Message):
 
     ydl_opts = {
         "outtmpl": filename,
-        "quiet": False,
+
+        # 🔥 максимально стабильный вариант со звуком
+        "format": "bv*+ba/best/best[ext=mp4]",
+        "merge_output_format": "mp4",
+
         "noplaylist": True,
-        "dump_single_json": True,
+        "quiet": False,
+
+        # 🔥 если есть cookies — используем
+        "cookiefile": cookies_path if cookies_path else None,
+
+        # 🔥 имитация браузера (важно для TikTok)
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0 Safari/537.36"
+            ),
+            "Referer": "https://www.tiktok.com/"
+        }
     }
 
     try:
         loop = asyncio.get_event_loop()
 
         def run_download():
+            print("START DOWNLOAD:", url, flush=True)
+
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
+
+            print("DOWNLOAD FINISHED", flush=True)
 
         await loop.run_in_executor(None, run_download)
 
@@ -83,6 +103,7 @@ async def download(message: Message):
 
 
 async def main():
+    print("BOT STARTED", flush=True)
     await dp.start_polling(bot)
 
 
