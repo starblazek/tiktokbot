@@ -1,2 +1,2 @@
 aiogram==3.*
-yt-dlp
+yt-dlp>=2026.2.4
