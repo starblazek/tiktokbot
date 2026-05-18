@@ -14,16 +14,70 @@ dp = Dispatcher()
 
 
 def save_cookies():
-    cookies_text = os.getenv("TIKTOK_COOKIES")
-
-    if not cookies_text:
+    cookies = os.getenv("TIKTOK_COOKIES")
+    if not cookies:
         return None
 
     path = "cookies.txt"
     with open(path, "w", encoding="utf-8") as f:
-        f.write(cookies_text)
+        f.write(cookies)
 
     return path
+
+
+# 🔥 несколько стратегий скачивания
+def download_tiktok(url, filename, cookies_path=None):
+
+    base_headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36"
+        ),
+        "Referer": "https://www.tiktok.com/",
+    }
+
+    # 🔥 разные стратегии (ключ к решению проблемы со звуком)
+    strategies = [
+        # 1. норм вариант (лучший)
+        {
+            "format": "bv*+ba/best",
+        },
+        # 2. fallback mp4
+        {
+            "format": "best[ext=mp4]/best",
+        },
+        # 3. крайний вариант (часто даёт звук)
+        {
+            "format": "best",
+        },
+    ]
+
+    last_error = None
+
+    for s in strategies:
+        try:
+            ydl_opts = {
+                "outtmpl": filename,
+                "merge_output_format": "mp4",
+                "noplaylist": True,
+                "quiet": True,
+                "http_headers": base_headers,
+                **s,
+            }
+
+            if cookies_path:
+                ydl_opts["cookiefile"] = cookies_path
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+
+            if os.path.exists(filename) and os.path.getsize(filename) > 1000:
+                return True
+
+        except Exception as e:
+            last_error = e
+
+    raise last_error
 
 
 @dp.message(CommandStart())
@@ -32,7 +86,7 @@ async def start(message: Message):
 
 
 @dp.message(F.text)
-async def download(message: Message):
+async def handler(message: Message):
     url = message.text.strip()
 
     if "tiktok.com" not in url:
@@ -42,55 +96,24 @@ async def download(message: Message):
     status = await message.answer("⏬ Скачиваю видео...")
 
     filename = f"{uuid.uuid4()}.mp4"
-
     cookies_path = save_cookies()
-
-    ydl_opts = {
-        "outtmpl": filename,
-
-        # 🔥 максимально стабильный вариант со звуком
-        "format": "bv*+ba/best/best[ext=mp4]",
-        "merge_output_format": "mp4",
-
-        "noplaylist": True,
-        "quiet": False,
-
-        # 🔥 если есть cookies — используем
-        "cookiefile": cookies_path if cookies_path else None,
-
-        # 🔥 имитация браузера (важно для TikTok)
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0 Safari/537.36"
-            ),
-            "Referer": "https://www.tiktok.com/"
-        }
-    }
 
     try:
         loop = asyncio.get_event_loop()
 
-        def run_download():
-            print("START DOWNLOAD:", url, flush=True)
-
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-
-            print("DOWNLOAD FINISHED", flush=True)
-
-        await loop.run_in_executor(None, run_download)
-
-        if not os.path.exists(filename):
-            await message.answer("Не удалось скачать видео 😢")
-            return
+        await loop.run_in_executor(
+            None,
+            download_tiktok,
+            url,
+            filename,
+            cookies_path
+        )
 
         video = FSInputFile(filename)
         await message.answer_video(video=video)
 
     except Exception as e:
-        await message.answer(f"Ошибка:\n{str(e)}")
+        await message.answer(f"Ошибка:\n{e}")
 
     finally:
         if os.path.exists(filename):
