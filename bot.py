@@ -48,26 +48,9 @@ async def download(message: Message):
 
     ydl_opts = {
         "outtmpl": filename,
-
-        # 🔥 максимально стабильный формат
-        "format": "bv*+ba/best/best[ext=mp4]",
-
-        "merge_output_format": "mp4",
+        "quiet": False,
         "noplaylist": True,
-        "quiet": True,
-
-        # 🔥 cookies (если есть)
-        "cookiefile": cookies_path if cookies_path else None,
-
-        # 🔥 имитация браузера
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0 Safari/537.36"
-            ),
-            "Referer": "https://www.tiktok.com/"
-        }
+        "dump_single_json": True,
     }
 
     try:
