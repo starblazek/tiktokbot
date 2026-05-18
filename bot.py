@@ -56,12 +56,23 @@ def download_tiktok(url, filename, cookies_path=None):
         "Referer": "https://www.tiktok.com/",
     }
 
-    # TikTok отдаёт пары форматов *-0 (видео+звук) и *-1 (только видео).
-    # С cookies yt-dlp часто берёт *-1; fallback best[ext=mp4] — тоже без звука.
+    # *-0 — muxed видео+звук без watermark; *-1 — только видео; download — с watermark.
+    no_wm = "[format_id!=download]"
     strategies = [
-        {"format": "download/b[vcodec=h264]/b"},
-        {"format": "b[vcodec^=h264]/best[acodec!=none]"},
-        {"format": "bestvideo*+bestaudio/bestvideo+bestaudio"},
+        {
+            "format": (
+                f"best[format_id$=-0]{no_wm}[vcodec^=h264]/"
+                f"b[vcodec^=h264]{no_wm}/"
+                f"best[format_id$=-0]{no_wm}"
+            ),
+        },
+        {
+            "format": (
+                f"bestvideo[vcodec^=h264]+bestaudio/"
+                f"bestvideo*+bestaudio/"
+                f"best{no_wm}"
+            ),
+        },
     ]
 
     cookie_attempts = []
